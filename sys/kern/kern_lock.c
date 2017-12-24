@@ -349,7 +349,7 @@ lockmgr(lkp, flags, interlkp, p)
 
     case LK_RELEASE:
         if (lkp->lk_exclusivecount != 0) {
-            if (pid != lkp->lk_lockholder)
+            if (pid >= 0 && pid != lkp->lk_lockholder)
                 panic("lockmgr: pid %d, not %s %d unlocking",
                     pid, "exclusive lock holder",
                     lkp->lk_lockholder);

@@ -301,11 +301,12 @@ copyargs (uap, hdr, framebuf, framesz)
  * to the argument list if given here.
  */
 static int
-getheader(p, ndp, file_size, hdr)
+getheader(p, ndp, file_size, hdr, retndp)
     struct proc *p;
     struct nameidata *ndp;
     unsigned file_size;
     struct exec_hdr *hdr;
+    struct nameidata **retndp;
 {
     int rv, amt;
     union {
@@ -395,8 +396,9 @@ getheader(p, ndp, file_size, hdr)
             return ENOEXEC;
 
         /* Only one level of indirection is allowed. */
-        if (hdr->indir)
+        if (hdr->indir) {
             return ENOEXEC;
+        }
 
         char *cp, *sp;
         for (cp = &exdata.ex_shell[2];; ++cp) {
@@ -437,6 +439,7 @@ getheader(p, ndp, file_size, hdr)
 
         ndp->ni_dirp = hdr->shellname;  /* find shell interpreter */
         ndp->ni_segflg = UIO_SYSSPACE;
+        *retndp = ndp;
         return -1;
     }
 //printf("%s: text=%u, data=%u, bss=%u, entry=%08x\n", __func__, hdr->text, hdr->data, hdr->bss, hdr->entry);
@@ -481,6 +484,7 @@ execve(p, uap, retval)
     int *retval;
 {
     register struct nameidata *ndp;
+    struct nameidata *newndp;
     struct nameidata nd;
     int rv, tsize, dsize, bsize, len;
     struct vattr attr;
@@ -495,14 +499,16 @@ execve(p, uap, retval)
      */
     ndp = &nd;
     hdr.indir = 0;
-again:
+// again:
     NDINIT(ndp, LOOKUP, LOCKLEAF | FOLLOW | SAVENAME, UIO_USERSPACE,
         SCARG(uap, path), p);
 
+again:
     /* is it there? */
     rv = namei(ndp);
-    if (rv)
+    if (rv) {
         return rv;
+    }
 
     if (ndp->ni_vp->v_writecount) { /* don't exec if file is busy */
         rv = EBUSY;
@@ -531,11 +537,12 @@ again:
      * Step 2. Does the file contain a format we can
      * understand and execute
      */
-    rv = getheader(p, ndp, attr.va_size, &hdr);
+    rv = getheader(p, ndp, attr.va_size, &hdr, &newndp);
     if (rv > 0)
         goto exec_fail;
     if (rv < 0) {
-        FREE(ndp->ni_cnd.cn_pnbuf, M_NAMEI);
+        // FREE(ndp->ni_cnd.cn_pnbuf, M_NAMEI); /* XXX */
+        ndp=newndp;
         goto again;
     }
 
