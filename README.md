@@ -15,7 +15,7 @@ As of now, the bugfixes are:
 
 2. fix the execution of #! executables
    - The code implementing the execve system call is different to either the
-     4.3 or 4.4BSD implementations (sys/kern_exec.c) I could find online.
+     4.3 or 4.4BSD implementations (sys/kern/kern_exec.c) I could find online.
      The existence of the "shebang" (#!) magic is tested in the getheader 
      function. When getheader detects this, it tries to set the real executable 
      to the one given after #!; however, this is not returned to execve from
