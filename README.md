@@ -24,7 +24,7 @@ As of now, the bugfixes are:
 
      This is important since, if #! was detected, execve jumps (yep, goto...)
      to its own start and re-executes with the new executable name (to be exact,
-     a new struct nameidata) - which was, hoever, never set. I changed getheader 
+     a new struct nameidata) - which was, however, never set. I changed getheader 
      to return a pointer to the new nameidata for the real executable and moved
      the again label one line down to avoid re-initializing the nameidata from 
      scratch. 
